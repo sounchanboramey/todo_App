@@ -12,36 +12,42 @@ export class TodosService {
     private readonly todosRepository: Repository<Todo>,
   ) {}
 
-  findAll(): Promise<Todo[]> {
-    return this.todosRepository.find();
+  findAll(ownerId: number): Promise<Todo[]> {
+    return this.todosRepository.find({ where: { ownerId } });
   }
 
-  async findOne(id: number): Promise<Todo> {
-    const todo = await this.todosRepository.findOneBy({ id });
+  async findOne(id: number, ownerId: number): Promise<Todo> {
+    const todo = await this.todosRepository.findOneBy({ id, ownerId });
     if (!todo) throw new NotFoundException(`Todo #${id} not found`);
     return todo;
   }
 
-  async create(createTodoDto: CreateTodoDto): Promise<Todo> {
+  async create(createTodoDto: CreateTodoDto, ownerId: number): Promise<Todo> {
     const todo = this.todosRepository.create({
       ...createTodoDto,
+      ownerId,
       title: createTodoDto.title.trim(),
     });
     return this.todosRepository.save(todo);
   }
 
-  async update(id: number, updateTodoDto: UpdateTodoDto): Promise<Todo> {
-    const todo = await this.findOne(id);
-    Object.assign(todo, updateTodoDto);
+  async update(
+    id: number,
+    updateTodoDto: UpdateTodoDto,
+    ownerId: number,
+  ): Promise<Todo> {
+    const todo = await this.findOne(id, ownerId);
+    if (updateTodoDto.status !== undefined) todo.status = updateTodoDto.status;
+    if (updateTodoDto.priority !== undefined)
+      todo.priority = updateTodoDto.priority;
     if (updateTodoDto.title !== undefined) {
       todo.title = updateTodoDto.title.trim();
     }
     return this.todosRepository.save(todo);
   }
 
-  async remove(id: number): Promise<void> {
-    const todo = await this.findOne(id);
+  async remove(id: number, ownerId: number): Promise<void> {
+    const todo = await this.findOne(id, ownerId);
     await this.todosRepository.remove(todo);
   }
-  
 }

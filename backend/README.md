@@ -112,3 +112,44 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Authentication and todo ownership
+
+Run the migrations before starting the updated API:
+
+```bash
+npm run typeorm -- migration:run -d src/data-source.ts
+npm run start:dev
+```
+
+All routes use the `/api` prefix (default port 3001). Signup, login and refresh
+are public. Every other route requires `Authorization: Bearer <accessToken>`.
+New accounts always get the `USER` role; request bodies cannot grant admin access.
+The `/api/users` management routes require `ADMIN`. To promote an account,
+run this SQL as your database administrator, replacing the email:
+
+```sql
+UPDATE "users" SET "role" = 'ADMIN' WHERE "email" = 'your-email@example.com';
+```
+
+Todo routes only list, read, update and delete the current user's own todos.
+The server sets `ownerId` on creation; the client cannot change it.
+Existing todos remain intact with a NULL owner and are hidden until an
+administrator assigns them to the correct user in the database.
+
+`POST /api/auth/logout` requires an access token and revokes all refresh sessions
+for that account, then clears the refresh cookie. Already issued access tokens
+remain valid until expiry (15 minutes by default). An expired access token must
+be refreshed before calling logout.
+
+```bash
+npm test
+npm run test:auth
+npm run test:http
+npm run lint
+```
+
+The authentication/authorization tests use in-memory repository substitutes;
+they do not require or modify your PostgreSQL database.
+
+`test:http` also needs permission to open a local HTTP connection.
